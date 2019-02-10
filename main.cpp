@@ -16,8 +16,12 @@ void getIndexes(int num_channels, int num_hist_bins,
                 int img_rows, int img_cols,
                 int x, int y, int *index);
 void imageToSound(bool is_single_channel, Mat &img_in, Mat &img_out,
+                  Mat &index_channel, Mat &index_bin,
                   int num_channels, int num_hist_bins,
-                  vector<vector<double> > &histograms);
+                  vector<vector<double>> &histograms);
+void createIndexImages(int num_channels, int num_hist_bins,
+                       int num_img_rows, int num_img_cols,
+                       Mat &index_channel, Mat &index_bin);
 
 /// CONSTANTS ///
 const double pi = 3.141592653589;
@@ -40,6 +44,10 @@ int main()
     if( in.empty())
     {return -1;}
 
+    // Initialise indexing images
+    Mat index_channel, index_bin;
+    createIndexImages(num_channels, num_hist_bins, in.rows, in.cols, index_channel, index_bin);
+
     // Initialise the audio results
     vector<vector<double>> histograms;
     {
@@ -51,7 +59,8 @@ int main()
 
     ////////////////////
     /// Main Program ///
-    imageToSound(is_single_channel, in, out, num_channels, num_hist_bins, histograms);
+    imageToSound(is_single_channel, in, out, index_channel, index_bin,
+                 num_channels, num_hist_bins, histograms);
 
 
     ////////////////////////
@@ -165,6 +174,7 @@ void getIndexes(int num_channels, int num_hist_bins,
 
 /// For a given image, convert into a set of frequency responses for a set of speakers
 void imageToSound(bool is_single_channel, Mat &img_in, Mat &img_out,
+                  Mat &index_channel, Mat &index_bin,
                   int num_channels, int num_hist_bins,
                   vector<vector<double>> &histograms)
 {
@@ -195,22 +205,6 @@ void imageToSound(bool is_single_channel, Mat &img_in, Mat &img_out,
         {histograms[i][j] = 0;}
     }
 
-    // Create matrices to provide fast indexing
-    Mat index_channel = Mat::zeros(img_in.rows, img_in.cols, CV_32SC1);
-    Mat index_bin = Mat::zeros(img_in.rows, img_in.cols, CV_32SC1);
-    for (int i = 0; i < img_in.rows; i++)
-    {
-        int* pix_chan = index_channel.ptr<int>(i);
-        int* pix_bin = index_bin.ptr<int>(i);
-        int index[2];
-        for (int j = 0; j < img_in.cols; ++j)
-        {
-            getIndexes(num_channels, num_hist_bins, img_in.rows, img_in.cols, j, i, index);
-            pix_chan[j] = index[0];
-            pix_bin[j] = index[1];
-        }
-    }
-
     // Convert the FFT'd image into audio FFT's
     for (int i = 0; i < img_in.rows; i++)
     {
@@ -226,7 +220,29 @@ void imageToSound(bool is_single_channel, Mat &img_in, Mat &img_out,
     return;
 }
 
+/// Create "look up" matrices to speed up the image processing
+void createIndexImages(int num_channels, int num_hist_bins,
+                       int num_img_rows, int num_img_cols,
+                       Mat &index_channel, Mat &index_bin)
+{
+    // Create matrices to provide fast indexing
+    index_channel = Mat::zeros(num_img_rows, num_img_cols, CV_32SC1);
+    index_bin = Mat::zeros(num_img_rows, num_img_cols, CV_32SC1);
+    for (int i = 0; i < num_img_rows; i++)
+    {
+        int* pix_chan = index_channel.ptr<int>(i);
+        int* pix_bin = index_bin.ptr<int>(i);
+        int index[2];
+        for (int j = 0; j < num_img_cols; ++j)
+        {
+            getIndexes(num_channels, num_hist_bins, num_img_rows, num_img_cols, j, i, index);
+            pix_chan[j] = index[0];
+            pix_bin[j] = index[1];
+        }
+    }
 
+    return;
+}
 
 
 
