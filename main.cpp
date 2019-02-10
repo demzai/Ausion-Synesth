@@ -11,7 +11,7 @@ using namespace cv;
 
 /// FUNCTIONS ///
 void fft(cv::Mat &input, cv::Mat &output);
-void getIndexes(int numChannels, int numHistBins,
+void getIndexes(int num_channels, int num_hist_bins,
                 int img_rows, int img_cols,
                 int x, int y, int *index);
 
@@ -21,9 +21,9 @@ const double pi = 3.141592653589;
 int main()
 {
     // Define meta-parameters
-    const bool isSingleChannel = true;
-    const int numChannels = 4;
-    const int numHistBins = 256;
+    const bool is_single_channel = true;
+    const int num_channels = 4;
+    const int num_hist_bins = 256;
     const string img_locale =
             "C:\\Users\\Student\\Desktop\\Youtube\\Pics\\bilat_screenshot_04.08.2017.png";
     // "C:\\Users\\Student\\Desktop\\Personal\\Resume\\Face Pics\\DSC_0187.JPG"
@@ -36,7 +36,7 @@ int main()
     {return -1;}
 
     // Single channel
-    if(isSingleChannel == true)
+    if(is_single_channel == true)
     {
         cvtColor(in, in, CV_BGR2GRAY);
         fft(in, out);
@@ -53,26 +53,26 @@ int main()
 
     ///////////////////////////////
     /// Acquire the audio fft's ///
-    double histograms[numChannels][numHistBins];
+    double histograms[num_channels][num_hist_bins];
 
     // Initialise the histograms to zero
-    for(int i = 0; i < numChannels; i++)
+    for(int i = 0; i < num_channels; i++)
     {
-        for(int j = 0; j < numHistBins; j++)
+        for(int j = 0; j < num_hist_bins; j++)
         {histograms[i][j] = 0;}
     }
 
     // Create matrices to provide fast indexing
-    Mat indexChannel = Mat::zeros(in.rows, in.cols, CV_32SC1);
-    Mat indexBin = Mat::zeros(in.rows, in.cols, CV_32SC1);
+    Mat index_channel = Mat::zeros(in.rows, in.cols, CV_32SC1);
+    Mat index_bin = Mat::zeros(in.rows, in.cols, CV_32SC1);
     for (int i = 0; i < in.rows; i++)
     {
-        int* pix_chan = indexChannel.ptr<int>(i);
-        int* pix_bin = indexBin.ptr<int>(i);
+        int* pix_chan = index_channel.ptr<int>(i);
+        int* pix_bin = index_bin.ptr<int>(i);
         int index[2];
         for (int j = 0; j < in.cols; ++j)
         {
-            getIndexes(numChannels, numHistBins, in.rows, in.cols, j, i, index);
+            getIndexes(num_channels, num_hist_bins, in.rows, in.cols, j, i, index);
             pix_chan[j] = index[0];
             pix_bin[j] = index[1];
         }
@@ -81,8 +81,8 @@ int main()
     // Convert the FFT'd image into audio FFT's
     for (int i = 0; i < in.rows; i++)
     {
-        int* pix_chan = indexChannel.ptr<int>(i);
-        int* pix_bin = indexBin.ptr<int>(i);
+        int* pix_chan = index_channel.ptr<int>(i);
+        int* pix_bin = index_bin.ptr<int>(i);
         float* pix_fft = out.ptr<float>(i);
         for (int j = 0; j < in.cols; ++j)
         {
@@ -96,10 +96,10 @@ int main()
     imshow("spectrum Magnitude", out);
 
     // Print the contents of the arrays
-    for(int i = 0; i < numChannels; i++)
+    for(int i = 0; i < num_channels; i++)
     {
         cout << "hist" << i << " = [";
-        for(int j = 0; j < numHistBins; j++)
+        for(int j = 0; j < num_hist_bins; j++)
         {
             if(j != 0)
             {cout << ",\t";}
@@ -122,6 +122,7 @@ int main()
 
 void fft(cv::Mat &input, cv::Mat &output)
 {
+    // Courtesy of https://docs.opencv.org/3.4/d8/d01/tutorial_discrete_fourier_transform.html
     Mat I;
     input.copyTo(I);
     Mat padded;                            //expand input image to optimal size
@@ -170,7 +171,7 @@ void fft(cv::Mat &input, cv::Mat &output)
     magI.copyTo(output);
 }
 
-void getIndexes(int numChannels, int numHistBins,
+void getIndexes(int num_channels, int num_hist_bins,
                 int img_rows, int img_cols,
                 int x, int y, int *index)
 {
@@ -184,20 +185,20 @@ void getIndexes(int numChannels, int numHistBins,
 
     // Determine which channel to select
     double theta = 0.5 + atan2(y,x) / (2*pi);
-    theta *= numChannels;
+    theta *= num_channels;
     int channel = round(theta);
-    index[0] = (channel == numChannels) ? 0 : channel;
+    index[0] = (channel == num_channels) ? 0 : channel;
 
     // Determine which histogram bin to select
     double max_radius = sqrt( (center_x*center_x) + (center_y*center_y) );
     double val_radius = sqrt( (x*x) + (y*y) );
-    int bin = floor((val_radius / max_radius) * numHistBins);
-    index[1] = (bin == numHistBins) ? numHistBins-1 : bin;
+    int bin = floor((val_radius / max_radius) * num_hist_bins);
+    index[1] = (bin == num_hist_bins) ? num_hist_bins-1 : bin;
 
     return;
 }
 
-
+void imageToSound();
 
 
 
